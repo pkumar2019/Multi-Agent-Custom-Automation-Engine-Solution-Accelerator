@@ -1,3 +1,6 @@
+
+
+
 name: Deploy Multi-Agent Custom Automation Engine (Multi-Subscription)
 
 on:
@@ -129,8 +132,8 @@ jobs:
         # Set deployment variables
         SUBSCRIPTION_ID="${{ github.event.inputs.primary_subscription_id }}"
         LOCATION="${{ github.event.inputs.azure_location }}"
-        RESOURCE_GROUP_NAME="rg-macae-primary-${{ github.event.inputs.environment_suffix }}"
-        DEPLOYMENT_NAME="macae-primary-$(date +%Y%m%d%H%M%S)"
+        RESOURCE_GROUP_NAME="rg-macae-p-${{ github.event.inputs.environment_suffix }}"
+        DEPLOYMENT_NAME="macae-p-$(date +%Y%m%d%H%M%S)"
         
         echo "Creating resource group: $RESOURCE_GROUP_NAME"
         az group create --name $RESOURCE_GROUP_NAME --location $LOCATION
@@ -142,7 +145,7 @@ jobs:
           "contentVersion": "1.0.0.0",
           "parameters": {
             "solutionName": {
-              "value": "macae-primary-${{ github.event.inputs.environment_suffix }}"
+              "value": "macae-p-${{ github.event.inputs.environment_suffix }}"
             },
             "location": {
               "value": "$LOCATION"
@@ -371,8 +374,8 @@ jobs:
         # Set HR deployment variables
         HR_SUBSCRIPTION_ID="${{ github.event.inputs.hr_subscription_id }}"
         HR_LOCATION="${{ github.event.inputs.azure_location }}"
-        HR_RESOURCE_GROUP_NAME="rg-macae-hr-${{ github.event.inputs.environment_suffix }}"
-        HR_DEPLOYMENT_NAME="macae-hr-$(date +%Y%m%d%H%M%S)"
+        HR_RESOURCE_GROUP_NAME="rg-macae-h-${{ github.event.inputs.environment_suffix }}"
+        HR_DEPLOYMENT_NAME="macae-h-$(date +%Y%m%d%H%M%S)"
         
         # Create HR resource group
         az group create --name $HR_RESOURCE_GROUP_NAME --location $HR_LOCATION
@@ -384,7 +387,7 @@ jobs:
           "contentVersion": "1.0.0.0",
           "parameters": {
             "solutionName": {
-              "value": "macae-hr-${{ github.event.inputs.environment_suffix }}"
+              "value": "macae-h-${{ github.event.inputs.environment_suffix }}"
             },
             "location": {
               "value": "$HR_LOCATION"
@@ -548,8 +551,8 @@ jobs:
         # Set Finance deployment variables
         FINANCE_SUBSCRIPTION_ID="${{ github.event.inputs.finance_subscription_id }}"
         FINANCE_LOCATION="${{ github.event.inputs.azure_location }}"
-        FINANCE_RESOURCE_GROUP_NAME="rg-macae-finance-${{ github.event.inputs.environment_suffix }}"
-        FINANCE_DEPLOYMENT_NAME="macae-finance-$(date +%Y%m%d%H%M%S)"
+        FINANCE_RESOURCE_GROUP_NAME="rg-macae-f-${{ github.event.inputs.environment_suffix }}"
+        FINANCE_DEPLOYMENT_NAME="macae-f-$(date +%Y%m%d%H%M%S)"
 
         # Create Finance resource group
         az group create --name $FINANCE_RESOURCE_GROUP_NAME --location $FINANCE_LOCATION
@@ -561,7 +564,7 @@ jobs:
           "contentVersion": "1.0.0.0",
           "parameters": {
             "solutionName": {
-              "value": "macae-finance-${{ github.event.inputs.environment_suffix }}"
+              "value": "macae-f-${{ github.event.inputs.environment_suffix }}"
             },
             "location": {
               "value": "$FINANCE_LOCATION"
@@ -885,3 +888,4 @@ jobs:
         echo "4. Configure additional agent teams as needed"
         echo ""
         echo "✅ Multi-Agent Custom Automation Engine deployment completed successfully!"
+
