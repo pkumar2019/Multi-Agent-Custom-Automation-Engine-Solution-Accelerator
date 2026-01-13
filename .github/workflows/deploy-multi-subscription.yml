@@ -1,0 +1,887 @@
+name: Deploy Multi-Agent Custom Automation Engine (Multi-Subscription)
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_mode:
+        description: 'Deployment Mode'
+        required: true
+        default: 'primary_only'
+        type: choice
+        options:
+        - primary_only
+        - primary_and_hr
+        - primary_hr_finance
+        - full_deployment
+      primary_subscription_id:
+        description: 'Primary Subscription ID'
+        required: true
+        type: string
+      hr_subscription_id:
+        description: 'HR Subscription ID (optional)'
+        required: false
+        type: string
+      finance_subscription_id:
+        description: 'Finance Subscription ID (optional)'
+        required: false
+        type: string
+      azure_location:
+        description: 'Azure Location'
+        required: true
+        default: 'eastus2'
+        type: choice
+        options:
+        - eastus
+        - eastus2
+        - australiaeast
+        - japaneast
+        - uksouth
+        - francecentral
+        - swedencentral
+      environment_suffix:
+        description: 'Environment Suffix (e.g., dev, prod, test)'
+        required: true
+        default: 'dev'
+        type: string
+      enable_cross_subscription_rbac:
+        description: 'Enable Cross-Subscription RBAC'
+        required: true
+        default: true
+        type: boolean
+      skip_frontend_deployment:
+        description: 'Skip Frontend Deployment'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  AZURE_LOCATION: ${{ github.event.inputs.azure_location }}
+  ENVIRONMENT_SUFFIX: ${{ github.event.inputs.environment_suffix }}
+
+jobs:
+  validate-inputs:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_hr: ${{ steps.check.outputs.deploy_hr }}
+      deploy_finance: ${{ steps.check.outputs.deploy_finance }}
+    steps:
+    - name: Validate Deployment Inputs
+      id: check
+      run: |
+        echo "Validating deployment configuration..."
+        
+        # Check deployment mode requirements
+        case "${{ github.event.inputs.deployment_mode }}" in
+          "primary_and_hr"|"primary_hr_finance"|"full_deployment")
+            if [ -z "${{ github.event.inputs.hr_subscription_id }}" ]; then
+              echo "❌ HR Subscription ID required for this deployment mode"
+              exit 1
+            fi
+            echo "deploy_hr=true" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "deploy_hr=false" >> $GITHUB_OUTPUT
+            ;;
+        esac
+        
+        case "${{ github.event.inputs.deployment_mode }}" in
+          "primary_hr_finance"|"full_deployment")
+            if [ -z "${{ github.event.inputs.finance_subscription_id }}" ]; then
+              echo "❌ Finance Subscription ID required for this deployment mode"
+              exit 1
+            fi
+            echo "deploy_finance=true" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "deploy_finance=false" >> $GITHUB_OUTPUT
+            ;;
+        esac
+        
+        echo "✅ Deployment configuration validated successfully"
+        echo "🚀 Deployment Mode: ${{ github.event.inputs.deployment_mode }}"
+        echo "📍 Azure Location: ${{ github.event.inputs.azure_location }}"
+        echo "🏷️ Environment Suffix: ${{ github.event.inputs.environment_suffix }}"
+
+  deploy-primary:
+    runs-on: ubuntu-latest
+    needs: validate-inputs
+    outputs:
+      primary_backend_url: ${{ steps.capture.outputs.primary_backend_url }}
+      primary_ai_foundry_resource_id: ${{ steps.capture.outputs.primary_ai_foundry_resource_id }}
+      primary_identity_id: ${{ steps.capture.outputs.primary_identity_id }}
+      primary_resource_group: ${{ steps.capture.outputs.primary_resource_group }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set Primary Subscription
+      run: |
+        az account set --subscription "${{ github.event.inputs.primary_subscription_id }}"
+        echo "✅ Switched to primary subscription: ${{ github.event.inputs.primary_subscription_id }}"
+
+    - name: Create Primary Resource Group and Deploy Infrastructure
+      run: |
+        # Set deployment variables
+        SUBSCRIPTION_ID="${{ github.event.inputs.primary_subscription_id }}"
+        LOCATION="${{ github.event.inputs.azure_location }}"
+        RESOURCE_GROUP_NAME="rg-macae-primary-${{ github.event.inputs.environment_suffix }}"
+        DEPLOYMENT_NAME="macae-primary-$(date +%Y%m%d%H%M%S)"
+        
+        echo "Creating resource group: $RESOURCE_GROUP_NAME"
+        az group create --name $RESOURCE_GROUP_NAME --location $LOCATION
+        
+        # Create deployment parameters
+        cat > primary-deployment-parameters.json << EOF
+        {
+          "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "solutionName": {
+              "value": "macae-primary-${{ github.event.inputs.environment_suffix }}"
+            },
+            "location": {
+              "value": "$LOCATION"
+            },
+            "azureAiServiceLocation": {
+              "value": "$LOCATION"
+            },
+            "gptModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gptModelName": {
+              "value": "gpt-4.1-mini"
+            },
+            "gptModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gptModelCapacity": {
+              "value": 150
+            },
+            "gpt4_1ModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gpt4_1ModelName": {
+              "value": "gpt-4.1"
+            },
+            "gpt4_1ModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gpt4_1ModelCapacity": {
+              "value": 100
+            },
+            "gptReasoningModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gptReasoningModelName": {
+              "value": "o4-mini"
+            },
+            "gptReasoningModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gptReasoningModelCapacity": {
+              "value": 50
+            },
+            "enableTelemetry": {
+              "value": true
+            }
+          }
+        }
+        EOF
+        
+        echo "🚀 Starting primary infrastructure deployment..."
+        az deployment group create \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --template-file infra/main.bicep \
+          --parameters @primary-deployment-parameters.json \
+          --verbose
+        
+        # Store deployment info for next steps
+        echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME" >> $GITHUB_ENV
+        echo "DEPLOYMENT_NAME=$DEPLOYMENT_NAME" >> $GITHUB_ENV
+        echo "SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+
+    - name: Build and Deploy Applications
+      run: |
+        echo "🔨 Building and deploying applications..."
+        
+        # Get deployment outputs
+        BACKEND_ACR_NAME=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.containerRegistryName.value" -o tsv)
+        
+        BACKEND_CONTAINER_APP_NAME=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.backendContainerAppName.value" -o tsv)
+        
+        echo "Container Registry: $BACKEND_ACR_NAME"
+        echo "Backend Container App: $BACKEND_CONTAINER_APP_NAME"
+        
+        # Build and push backend container
+        echo "🐳 Building backend container..."
+        az acr build \
+          --registry $BACKEND_ACR_NAME \
+          --image backend:primary-latest \
+          --file src/backend/Dockerfile.NoCache \
+          src/backend/
+        
+        # Build and push MCP server container
+        echo "🐳 Building MCP server container..."
+        az acr build \
+          --registry $BACKEND_ACR_NAME \
+          --image mcp:primary-latest \
+          --file src/mcp_server/Dockerfile \
+          src/mcp_server/
+        
+        # Update container apps
+        echo "🔄 Updating container apps..."
+        az containerapp update \
+          --name $BACKEND_CONTAINER_APP_NAME \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --image "$BACKEND_ACR_NAME.azurecr.io/backend:primary-latest"
+
+    - name: Deploy Frontend (if not skipped)
+      if: ${{ github.event.inputs.skip_frontend_deployment != 'true' }}
+      run: |
+        echo "🌐 Deploying frontend..."
+        
+        FRONTEND_APP_NAME=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.frontendAppName.value" -o tsv)
+        
+        if [ ! -z "$FRONTEND_APP_NAME" ] && [ "$FRONTEND_APP_NAME" != "null" ]; then
+          # Install Node.js dependencies and build frontend
+          cd src/frontend
+          npm install --production
+          npm run build
+          
+          # Deploy to App Service
+          az webapp deploy \
+            --resource-group $RESOURCE_GROUP_NAME \
+            --name $FRONTEND_APP_NAME \
+            --src-path ./dist \
+            --type zip
+          
+          cd ../..
+          echo "✅ Frontend deployed successfully"
+        else
+          echo "⚠️ Frontend app name not found, skipping frontend deployment"
+        fi
+
+    - name: Upload Configurations and Data
+      run: |
+        echo "📤 Uploading configurations and sample data..."
+        
+        # Get storage account name
+        PRIMARY_STORAGE_ACCOUNT=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.storageAccountName.value" -o tsv)
+        
+        if [ ! -z "$PRIMARY_STORAGE_ACCOUNT" ] && [ "$PRIMARY_STORAGE_ACCOUNT" != "null" ]; then
+          echo "Storage Account: $PRIMARY_STORAGE_ACCOUNT"
+          
+          # Upload agent team configurations
+          if [ -d "data/agent_teams" ]; then
+            az storage blob upload-batch \
+              --account-name $PRIMARY_STORAGE_ACCOUNT \
+              --destination "agent-teams" \
+              --source "data/agent_teams/" \
+              --auth-mode login
+          fi
+          
+          # Upload sample datasets
+          if [ -d "data/datasets" ]; then
+            az storage blob upload-batch \
+              --account-name $PRIMARY_STORAGE_ACCOUNT \
+              --destination "datasets" \
+              --source "data/datasets/" \
+              --auth-mode login
+          fi
+          
+          echo "✅ Configurations uploaded successfully"
+        else
+          echo "⚠️ Storage account not found, skipping configuration upload"
+        fi
+
+    - name: Capture Primary Instance Details
+      id: capture
+      run: |
+        echo "📋 Capturing primary instance details..."
+        
+        # Get key deployment outputs
+        PRIMARY_AI_FOUNDRY_RESOURCE_ID=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.aiFooundryResourceId.value" -o tsv 2>/dev/null || echo "")
+        
+        PRIMARY_BACKEND_URL=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.backendUrl.value" -o tsv 2>/dev/null || echo "")
+        
+        PRIMARY_IDENTITY_ID=$(az deployment group show \
+          --resource-group $RESOURCE_GROUP_NAME \
+          --name $DEPLOYMENT_NAME \
+          --query "properties.outputs.managedIdentityClientId.value" -o tsv 2>/dev/null || echo "")
+        
+        # Set outputs
+        echo "primary_backend_url=$PRIMARY_BACKEND_URL" >> $GITHUB_OUTPUT
+        echo "primary_ai_foundry_resource_id=$PRIMARY_AI_FOUNDRY_RESOURCE_ID" >> $GITHUB_OUTPUT
+        echo "primary_identity_id=$PRIMARY_IDENTITY_ID" >> $GITHUB_OUTPUT
+        echo "primary_resource_group=$RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
+        
+        # Display results
+        echo "✅ Primary deployment completed!"
+        echo "🌐 Backend URL: $PRIMARY_BACKEND_URL"
+        echo "🤖 AI Foundry Resource ID: $PRIMARY_AI_FOUNDRY_RESOURCE_ID"
+        echo "🔑 Identity ID: $PRIMARY_IDENTITY_ID"
+
+  deploy-hr:
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, deploy-primary]
+    if: ${{ needs.validate-inputs.outputs.deploy_hr == 'true' }}
+    outputs:
+      hr_backend_url: ${{ steps.capture.outputs.hr_backend_url }}
+      hr_resource_group: ${{ steps.capture.outputs.hr_resource_group }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy HR Instance
+      run: |
+        echo "🏢 Deploying HR agents instance..."
+        
+        # Set HR subscription
+        az account set --subscription "${{ github.event.inputs.hr_subscription_id }}"
+        
+        # Set HR deployment variables
+        HR_SUBSCRIPTION_ID="${{ github.event.inputs.hr_subscription_id }}"
+        HR_LOCATION="${{ github.event.inputs.azure_location }}"
+        HR_RESOURCE_GROUP_NAME="rg-macae-hr-${{ github.event.inputs.environment_suffix }}"
+        HR_DEPLOYMENT_NAME="macae-hr-$(date +%Y%m%d%H%M%S)"
+        
+        # Create HR resource group
+        az group create --name $HR_RESOURCE_GROUP_NAME --location $HR_LOCATION
+        
+        # Create HR deployment parameters
+        cat > hr-deployment-parameters.json << EOF
+        {
+          "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "solutionName": {
+              "value": "macae-hr-${{ github.event.inputs.environment_suffix }}"
+            },
+            "location": {
+              "value": "$HR_LOCATION"
+            },
+            "azureAiServiceLocation": {
+              "value": "$HR_LOCATION"
+            },
+            "existingAiFoundryAiProjectResourceId": {
+              "value": "${{ needs.deploy-primary.outputs.primary_ai_foundry_resource_id }}"
+            },
+            "gptModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gptModelName": {
+              "value": "gpt-4.1-mini"
+            },
+            "gptModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gptModelCapacity": {
+              "value": 100
+            },
+            "gpt4_1ModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gpt4_1ModelName": {
+              "value": "gpt-4.1"
+            },
+            "gpt4_1ModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gpt4_1ModelCapacity": {
+              "value": 50
+            },
+            "gptReasoningModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gptReasoningModelName": {
+              "value": "o4-mini"
+            },
+            "gptReasoningModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gptReasoningModelCapacity": {
+              "value": 25
+            },
+            "enableTelemetry": {
+              "value": true
+            }
+          }
+        }
+        EOF
+        
+        # Deploy HR infrastructure
+        echo "🚀 Starting HR infrastructure deployment..."
+        az deployment group create \
+          --resource-group $HR_RESOURCE_GROUP_NAME \
+          --name $HR_DEPLOYMENT_NAME \
+          --template-file infra/main.bicep \
+          --parameters @hr-deployment-parameters.json \
+          --verbose
+        
+        # Store HR deployment info
+        echo "HR_RESOURCE_GROUP_NAME=$HR_RESOURCE_GROUP_NAME" >> $GITHUB_ENV
+        echo "HR_DEPLOYMENT_NAME=$HR_DEPLOYMENT_NAME" >> $GITHUB_ENV
+
+    - name: Build and Deploy HR Applications
+      run: |
+        echo "🔨 Building HR-specific applications..."
+        
+        # Get HR deployment outputs
+        HR_ACR_NAME=$(az deployment group show \
+          --resource-group $HR_RESOURCE_GROUP_NAME \
+          --name $HR_DEPLOYMENT_NAME \
+          --query "properties.outputs.containerRegistryName.value" -o tsv)
+        
+        HR_CONTAINER_APP_NAME=$(az deployment group show \
+          --resource-group $HR_RESOURCE_GROUP_NAME \
+          --name $HR_DEPLOYMENT_NAME \
+          --query "properties.outputs.backendContainerAppName.value" -o tsv)
+        
+        # Build HR-specialized containers
+        az acr build \
+          --registry $HR_ACR_NAME \
+          --image backend:hr-specialized \
+          --file src/backend/Dockerfile.NoCache \
+          src/backend/
+        
+        az acr build \
+          --registry $HR_ACR_NAME \
+          --image mcp:hr-specialized \
+          --file src/mcp_server/Dockerfile \
+          src/mcp_server/
+        
+        # Update HR container apps
+        az containerapp update \
+          --name $HR_CONTAINER_APP_NAME \
+          --resource-group $HR_RESOURCE_GROUP_NAME \
+          --image "$HR_ACR_NAME.azurecr.io/backend:hr-specialized"
+
+    - name: Upload HR Configurations
+      run: |
+        echo "📤 Uploading HR-specific configurations..."
+        
+        HR_STORAGE_ACCOUNT=$(az deployment group show \
+          --resource-group $HR_RESOURCE_GROUP_NAME \
+          --name $HR_DEPLOYMENT_NAME \
+          --query "properties.outputs.storageAccountName.value" -o tsv)
+        
+        if [ ! -z "$HR_STORAGE_ACCOUNT" ] && [ "$HR_STORAGE_ACCOUNT" != "null" ]; then
+          # Upload HR-specific configurations
+          if [ -d "data/agent_teams" ]; then
+            az storage blob upload-batch \
+              --account-name $HR_STORAGE_ACCOUNT \
+              --destination "agent-teams" \
+              --source "data/agent_teams/" \
+              --pattern "*hr*" \
+              --auth-mode login
+          fi
+        fi
+
+    - name: Capture HR Instance Details
+      id: capture
+      run: |
+        echo "📋 Capturing HR instance details..."
+        
+        HR_BACKEND_URL=$(az deployment group show \
+          --resource-group $HR_RESOURCE_GROUP_NAME \
+          --name $HR_DEPLOYMENT_NAME \
+          --query "properties.outputs.backendUrl.value" -o tsv 2>/dev/null || echo "")
+        
+        echo "hr_backend_url=$HR_BACKEND_URL" >> $GITHUB_OUTPUT
+        echo "hr_resource_group=$HR_RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
+        
+        echo "✅ HR deployment completed!"
+        echo "🏢 HR Backend URL: $HR_BACKEND_URL"
+
+  deploy-finance:
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, deploy-primary]
+    if: ${{ needs.validate-inputs.outputs.deploy_finance == 'true' }}
+    outputs:
+      finance_backend_url: ${{ steps.capture.outputs.finance_backend_url }}
+      finance_resource_group: ${{ steps.capture.outputs.finance_resource_group }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Finance Instance
+      run: |
+        echo "💰 Deploying Finance agents instance..."
+        
+        # Set Finance subscription
+        az account set --subscription "${{ github.event.inputs.finance_subscription_id }}"
+        
+        # Set Finance deployment variables
+        FINANCE_SUBSCRIPTION_ID="${{ github.event.inputs.finance_subscription_id }}"
+        FINANCE_LOCATION="${{ github.event.inputs.azure_location }}"
+        FINANCE_RESOURCE_GROUP_NAME="rg-macae-finance-${{ github.event.inputs.environment_suffix }}"
+        FINANCE_DEPLOYMENT_NAME="macae-finance-$(date +%Y%m%d%H%M%S)"
+
+        # Create Finance resource group
+        az group create --name $FINANCE_RESOURCE_GROUP_NAME --location $FINANCE_LOCATION
+        
+        # Create Finance deployment parameters (more powerful models)
+        cat > finance-deployment-parameters.json << EOF
+        {
+          "\$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "solutionName": {
+              "value": "macae-finance-${{ github.event.inputs.environment_suffix }}"
+            },
+            "location": {
+              "value": "$FINANCE_LOCATION"
+            },
+            "azureAiServiceLocation": {
+              "value": "$FINANCE_LOCATION"
+            },
+            "gptModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gptModelName": {
+              "value": "gpt-4.1"
+            },
+            "gptModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gptModelCapacity": {
+              "value": 200
+            },
+            "gpt4_1ModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gpt4_1ModelName": {
+              "value": "gpt-4.1"
+            },
+            "gpt4_1ModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gpt4_1ModelCapacity": {
+              "value": 150
+            },
+            "gptReasoningModelDeploymentType": {
+              "value": "GlobalStandard"
+            },
+            "gptReasoningModelName": {
+              "value": "o4-mini"
+            },
+            "gptReasoningModelVersion": {
+              "value": "2024-11-20"
+            },
+            "gptReasoningModelCapacity": {
+              "value": 100
+            },
+            "enableTelemetry": {
+              "value": true
+            }
+          }
+        }
+        EOF
+        
+        # Deploy Finance infrastructure
+        echo "🚀 Starting Finance infrastructure deployment..."
+        az deployment group create \
+          --resource-group $FINANCE_RESOURCE_GROUP_NAME \
+          --name $FINANCE_DEPLOYMENT_NAME \
+          --template-file infra/main.bicep \
+          --parameters @finance-deployment-parameters.json \
+          --verbose
+        
+        # Store Finance deployment info
+        echo "FINANCE_RESOURCE_GROUP_NAME=$FINANCE_RESOURCE_GROUP_NAME" >> $GITHUB_ENV
+        echo "FINANCE_DEPLOYMENT_NAME=$FINANCE_DEPLOYMENT_NAME" >> $GITHUB_ENV
+
+    - name: Build and Deploy Finance Applications
+      run: |
+        echo "🔨 Building Finance-specific applications..."
+        
+        # Get Finance deployment outputs
+        FINANCE_ACR_NAME=$(az deployment group show \
+          --resource-group $FINANCE_RESOURCE_GROUP_NAME \
+          --name $FINANCE_DEPLOYMENT_NAME \
+          --query "properties.outputs.containerRegistryName.value" -o tsv)
+        
+        FINANCE_CONTAINER_APP_NAME=$(az deployment group show \
+          --resource-group $FINANCE_RESOURCE_GROUP_NAME \
+          --name $FINANCE_DEPLOYMENT_NAME \
+          --query "properties.outputs.backendContainerAppName.value" -o tsv)
+        
+        # Build Finance-specialized containers
+        az acr build \
+          --registry $FINANCE_ACR_NAME \
+          --image backend:finance-specialized \
+          --file src/backend/Dockerfile.NoCache \
+          src/backend/
+        
+        az acr build \
+          --registry $FINANCE_ACR_NAME \
+          --image mcp:finance-specialized \
+          --file src/mcp_server/Dockerfile \
+          src/mcp_server/
+        
+        # Update Finance container apps
+        az containerapp update \
+          --name $FINANCE_CONTAINER_APP_NAME \
+          --resource-group $FINANCE_RESOURCE_GROUP_NAME \
+          --image "$FINANCE_ACR_NAME.azurecr.io/backend:finance-specialized"
+
+    - name: Upload Finance Configurations
+      run: |
+        echo "📤 Uploading Finance-specific configurations..."
+        
+        FINANCE_STORAGE_ACCOUNT=$(az deployment group show \
+          --resource-group $FINANCE_RESOURCE_GROUP_NAME \
+          --name $FINANCE_DEPLOYMENT_NAME \
+          --query "properties.outputs.storageAccountName.value" -o tsv)
+        
+        if [ ! -z "$FINANCE_STORAGE_ACCOUNT" ] && [ "$FINANCE_STORAGE_ACCOUNT" != "null" ]; then
+          # Upload Finance-specific configurations
+          if [ -d "data/agent_teams" ]; then
+            az storage blob upload-batch \
+              --account-name $FINANCE_STORAGE_ACCOUNT \
+              --destination "agent-teams" \
+              --source "data/agent_teams/" \
+              --pattern "*retail*" \
+              --auth-mode login
+          fi
+        fi
+
+    - name: Capture Finance Instance Details
+      id: capture
+      run: |
+        echo "📋 Capturing Finance instance details..."
+        
+        FINANCE_BACKEND_URL=$(az deployment group show \
+          --resource-group $FINANCE_RESOURCE_GROUP_NAME \
+          --name $FINANCE_DEPLOYMENT_NAME \
+          --query "properties.outputs.backendUrl.value" -o tsv 2>/dev/null || echo "")
+        
+        echo "finance_backend_url=$FINANCE_BACKEND_URL" >> $GITHUB_OUTPUT
+        echo "finance_resource_group=$FINANCE_RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
+        
+        echo "✅ Finance deployment completed!"
+        echo "💰 Finance Backend URL: $FINANCE_BACKEND_URL"
+
+  configure-cross-subscription:
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, deploy-primary, deploy-hr, deploy-finance]
+    if: ${{ always() && needs.deploy-primary.result == 'success' && (needs.deploy-hr.result == 'success' || needs.deploy-hr.result == 'skipped') && (needs.deploy-finance.result == 'success' || needs.deploy-finance.result == 'skipped') }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Configure Cross-Subscription RBAC
+      if: ${{ github.event.inputs.enable_cross_subscription_rbac == 'true' }}
+      run: |
+        echo "🔐 Configuring cross-subscription RBAC permissions..."
+        
+        # Switch to primary subscription
+        az account set --subscription "${{ github.event.inputs.primary_subscription_id }}"
+        
+        PRIMARY_IDENTITY_ID="${{ needs.deploy-primary.outputs.primary_identity_id }}"
+        
+        if [ ! -z "$PRIMARY_IDENTITY_ID" ] && [ "$PRIMARY_IDENTITY_ID" != "null" ]; then
+          echo "Primary Identity ID: $PRIMARY_IDENTITY_ID"
+          
+          # Grant permissions to HR subscription if deployed
+          if [ "${{ needs.validate-inputs.outputs.deploy_hr }}" == "true" ]; then
+            echo "Granting permissions to HR subscription..."
+            az role assignment create \
+              --assignee "$PRIMARY_IDENTITY_ID" \
+              --role "Azure AI User" \
+              --scope "/subscriptions/${{ github.event.inputs.hr_subscription_id }}" || echo "HR RBAC assignment may already exist"
+            
+            az role assignment create \
+              --assignee "$PRIMARY_IDENTITY_ID" \
+              --role "Cognitive Services User" \
+              --scope "/subscriptions/${{ github.event.inputs.hr_subscription_id }}" || echo "HR RBAC assignment may already exist"
+          fi
+          
+          # Grant permissions to Finance subscription if deployed
+          if [ "${{ needs.validate-inputs.outputs.deploy_finance }}" == "true" ]; then
+            echo "Granting permissions to Finance subscription..."
+            az role assignment create \
+              --assignee "$PRIMARY_IDENTITY_ID" \
+              --role "Azure AI User" \
+              --scope "/subscriptions/${{ github.event.inputs.finance_subscription_id }}" || echo "Finance RBAC assignment may already exist"
+            
+            az role assignment create \
+              --assignee "$PRIMARY_IDENTITY_ID" \
+              --role "Cognitive Services User" \
+              --scope "/subscriptions/${{ github.event.inputs.finance_subscription_id }}" || echo "Finance RBAC assignment may already exist"
+          fi
+          
+          echo "✅ Cross-subscription RBAC configured successfully"
+        else
+          echo "⚠️ Primary identity ID not found, skipping RBAC configuration"
+        fi
+
+    - name: Generate Multi-Subscription Configuration
+      run: |
+        echo "📝 Generating multi-subscription configuration file..."
+        
+        # Create comprehensive configuration
+        cat > multi_subscription_config.json << EOF
+        {
+          "deployment_info": {
+            "deployment_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "deployment_mode": "${{ github.event.inputs.deployment_mode }}",
+            "environment_suffix": "${{ github.event.inputs.environment_suffix }}",
+            "azure_location": "${{ github.event.inputs.azure_location }}"
+          },
+          "multi_subscription_config": {
+            "primary": {
+              "subscription_id": "${{ github.event.inputs.primary_subscription_id }}",
+              "resource_group": "${{ needs.deploy-primary.outputs.primary_resource_group }}",
+              "backend_url": "${{ needs.deploy-primary.outputs.primary_backend_url }}",
+              "ai_foundry_resource_id": "${{ needs.deploy-primary.outputs.primary_ai_foundry_resource_id }}",
+              "role": "orchestrator"
+            }$(if [ "${{ needs.validate-inputs.outputs.deploy_hr }}" == "true" ]; then echo ',
+            "hr": {
+              "subscription_id": "${{ github.event.inputs.hr_subscription_id }}",
+              "resource_group": "${{ needs.deploy-hr.outputs.hr_resource_group }}",
+              "backend_url": "${{ needs.deploy-hr.outputs.hr_backend_url }}",
+              "mcp_endpoint": "${{ needs.deploy-hr.outputs.hr_backend_url }}/mcp",
+              "role": "specialized_agent"
+            }'; fi)$(if [ "${{ needs.validate-inputs.outputs.deploy_finance }}" == "true" ]; then echo ',
+            "finance": {
+              "subscription_id": "${{ github.event.inputs.finance_subscription_id }}",
+              "resource_group": "${{ needs.deploy-finance.outputs.finance_resource_group }}",
+              "backend_url": "${{ needs.deploy-finance.outputs.finance_backend_url }}",
+              "mcp_endpoint": "${{ needs.deploy-finance.outputs.finance_backend_url }}/mcp",
+              "role": "specialized_agent"
+            }'; fi)
+          },
+          "mcp_endpoints": {$(if [ "${{ needs.validate-inputs.outputs.deploy_hr }}" == "true" ]; then echo '
+            "hr": {
+              "url": "${{ needs.deploy-hr.outputs.hr_backend_url }}/mcp",
+              "subscription_id": "${{ github.event.inputs.hr_subscription_id }}",
+              "description": "HR specialized agents",
+              "capabilities": ["employee_management", "benefits", "onboarding", "performance_review"]
+            }'; fi)$(if [ "${{ needs.validate-inputs.outputs.deploy_hr }}" == "true" && [ "${{ needs.validate-inputs.outputs.deploy_finance }}" == "true" ]; then echo ','; fi)$(if [ "${{ needs.validate-inputs.outputs.deploy_finance }}" == "true" ]; then echo '
+            "finance": {
+              "url": "${{ needs.deploy-finance.outputs.finance_backend_url }}/mcp",
+              "subscription_id": "${{ github.event.inputs.finance_subscription_id }}",
+              "description": "Finance specialized agents",
+              "capabilities": ["budget_analysis", "expense_tracking", "financial_reporting", "audit"]
+            }'; fi)
+          },
+          "agent_routing": {
+            "hr_queries": ["employee", "benefits", "onboarding", "performance", "hr policy", "time off"],
+            "finance_queries": ["budget", "expense", "financial", "accounting", "cost", "revenue", "audit"],
+            "general_queries": ["status", "health", "overview", "summary"]
+          },
+          "authentication": {
+            "method": "managed_identity",
+            "primary_identity_id": "${{ needs.deploy-primary.outputs.primary_identity_id }}"
+          }
+        }
+        EOF
+        
+        echo "✅ Multi-subscription configuration generated"
+
+    - name: Upload Configuration as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: multi-subscription-config-${{ github.event.inputs.environment_suffix }}
+        path: multi_subscription_config.json
+        retention-days: 30
+
+  verify-deployment:
+    runs-on: ubuntu-latest
+    needs: [deploy-primary, deploy-hr, deploy-finance, configure-cross-subscription]
+    if: ${{ always() && needs.deploy-primary.result == 'success' }}
+    steps:
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Test Deployment Health
+      run: |
+        echo "🏥 Testing deployment health..."
+        
+        # Test primary instance
+        if [ ! -z "${{ needs.deploy-primary.outputs.primary_backend_url }}" ]; then
+          echo "Testing Primary Instance Health..."
+          curl -f "${{ needs.deploy-primary.outputs.primary_backend_url }}/health" && echo "✅ Primary instance healthy" || echo "❌ Primary instance health check failed"
+        fi
+        
+        # Test HR instance if deployed
+        if [ "${{ needs.validate-inputs.outputs.deploy_hr }}" == "true" ] && [ ! -z "${{ needs.deploy-hr.outputs.hr_backend_url }}" ]; then
+          echo "Testing HR Instance Health..."
+          curl -f "${{ needs.deploy-hr.outputs.hr_backend_url }}/health" && echo "✅ HR instance healthy" || echo "❌ HR instance health check failed"
+        fi
+        
+        # Test Finance instance if deployed
+        if [ "${{ needs.validate-inputs.outputs.deploy_finance }}" == "true" ] && [ ! -z "${{ needs.deploy-finance.outputs.finance_backend_url }}" ]; then
+          echo "Testing Finance Instance Health..."
+          curl -f "${{ needs.deploy-finance.outputs.finance_backend_url }}/health" && echo "✅ Finance instance healthy" || echo "❌ Finance instance health check failed"
+        fi
+
+    - name: Generate Deployment Summary
+      run: |
+        echo "📊 DEPLOYMENT SUMMARY"
+        echo "===================="
+        echo "Deployment Mode: ${{ github.event.inputs.deployment_mode }}"
+        echo "Environment Suffix: ${{ github.event.inputs.environment_suffix }}"
+        echo "Azure Location: ${{ github.event.inputs.azure_location }}"
+        echo ""
+        echo "🌐 Deployed Instances:"
+        echo "Primary Backend: ${{ needs.deploy-primary.outputs.primary_backend_url }}"
+        
+        if [ "${{ needs.validate-inputs.outputs.deploy_hr }}" == "true" ]; then
+          echo "HR Backend: ${{ needs.deploy-hr.outputs.hr_backend_url }}"
+        fi
+        
+        if [ "${{ needs.validate-inputs.outputs.deploy_finance }}" == "true" ]; then
+          echo "Finance Backend: ${{ needs.deploy-finance.outputs.finance_backend_url }}"
+        fi
+        
+        echo ""
+        echo "🔑 Next Steps:"
+        echo "1. Access the web frontend using the backend URLs above"
+        echo "2. Download the multi-subscription configuration artifact"
+        echo "3. Test agent functionality through the web interface"
+        echo "4. Configure additional agent teams as needed"
+        echo ""
+        echo "✅ Multi-Agent Custom Automation Engine deployment completed successfully!"
