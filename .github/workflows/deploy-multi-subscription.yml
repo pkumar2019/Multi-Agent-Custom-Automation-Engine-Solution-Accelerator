@@ -1,6 +1,3 @@
-
-
-
 name: Deploy Multi-Agent Custom Automation Engine (Multi-Subscription)
 
 on:
@@ -157,10 +154,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4.1-mini"
+              "value": "gpt-4o-mini"
             },
             "gptModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-07-18"
             },
             "gptModelCapacity": {
               "value": 150
@@ -169,10 +166,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gpt4_1ModelName": {
-              "value": "gpt-4.1"
+              "value": "gpt-4o"
             },
             "gpt4_1ModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-08-06"
             },
             "gpt4_1ModelCapacity": {
               "value": 100
@@ -181,10 +178,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "o4-mini"
+              "value": "o1-mini"
             },
             "gptReasoningModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-09-12"
             },
             "gptReasoningModelCapacity": {
               "value": 50
@@ -402,10 +399,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4.1-mini"
+              "value": "gpt-4o-mini"
             },
             "gptModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-07-18"
             },
             "gptModelCapacity": {
               "value": 100
@@ -414,10 +411,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gpt4_1ModelName": {
-              "value": "gpt-4.1"
+              "value": "gpt-4o"
             },
             "gpt4_1ModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-08-06"
             },
             "gpt4_1ModelCapacity": {
               "value": 50
@@ -426,10 +423,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "o4-mini"
+              "value": "o1-mini"
             },
             "gptReasoningModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-09-12"
             },
             "gptReasoningModelCapacity": {
               "value": 25
@@ -576,10 +573,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4.1"
+              "value": "gpt-4o"
             },
             "gptModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-08-06"
             },
             "gptModelCapacity": {
               "value": 200
@@ -588,10 +585,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gpt4_1ModelName": {
-              "value": "gpt-4.1"
+              "value": "gpt-4o"
             },
             "gpt4_1ModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-08-06"
             },
             "gpt4_1ModelCapacity": {
               "value": 150
@@ -600,10 +597,10 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "o4-mini"
+              "value": "o1-mini"
             },
             "gptReasoningModelVersion": {
-              "value": "2024-11-20"
+              "value": "2024-09-12"
             },
             "gptReasoningModelCapacity": {
               "value": 100
@@ -888,4 +885,6 @@ jobs:
         echo "4. Configure additional agent teams as needed"
         echo ""
         echo "✅ Multi-Agent Custom Automation Engine deployment completed successfully!"
+
+
 
