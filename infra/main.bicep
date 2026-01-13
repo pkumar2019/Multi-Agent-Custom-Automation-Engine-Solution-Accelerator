@@ -1203,7 +1203,7 @@ module containerApp 'br/public:avm/res/app/container-app:0.18.1' = {
     containers: [
       {
         name: 'backend'
-        image: '${containerRegistry.outputs.loginServer}/${backendContainerImageName}:${backendContainerImageTag}'
+        image: '${backendContainerRegistryHostname}/${backendContainerImageName}:${backendContainerImageTag}'
         resources: {
           cpu: '2.0'
           memory: '4.0Gi'
@@ -1418,7 +1418,7 @@ module containerAppMcp 'br/public:avm/res/app/container-app:0.18.1' = {
     containers: [
       {
         name: 'mcp'
-        image: '${containerRegistry.outputs.loginServer}/${MCPContainerImageName}:${MCPContainerImageTag}'
+        image: '${MCPContainerRegistryHostname}/${MCPContainerImageName}:${MCPContainerImageTag}'
         resources: {
           cpu: '2.0'
           memory: '4.0Gi'
@@ -1512,7 +1512,7 @@ module webSite 'modules/web-sites.bicep' = {
     kind: 'app,linux,container'
     serverFarmResourceId: webServerFarm.?outputs.resourceId
     siteConfig: {
-      linuxFxVersion: 'DOCKER|${containerRegistry.outputs.loginServer}/${frontendContainerImageName}:${frontendContainerImageTag}'
+      linuxFxVersion: 'DOCKER|${frontendContainerRegistryHostname}/${frontendContainerImageName}:${frontendContainerImageTag}'
       minTlsVersion: '1.2'
     }
     configs: [
@@ -1520,7 +1520,7 @@ module webSite 'modules/web-sites.bicep' = {
         name: 'appsettings'
         properties: {
           SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
-          DOCKER_REGISTRY_SERVER_URL: 'https://${containerRegistry.outputs.loginServer}'
+          DOCKER_REGISTRY_SERVER_URL: 'https://${frontendContainerRegistryHostname}'
           WEBSITES_PORT: '3000'
           WEBSITES_CONTAINER_START_TIME_LIMIT: '1800' // 30 minutes, adjust as needed
           BACKEND_API_URL: 'https://${containerApp.outputs.fqdn}'
