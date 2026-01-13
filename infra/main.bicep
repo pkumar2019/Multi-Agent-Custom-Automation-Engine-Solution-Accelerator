@@ -824,19 +824,6 @@ module existingAiFoundryAiServicesDeployments 'modules/ai-services-deployments.b
         }
       }
       {
-        name: aiFoundryAiServices4_1ModelDeployment.name
-        model: {
-          format: aiFoundryAiServices4_1ModelDeployment.format
-          name: aiFoundryAiServices4_1ModelDeployment.name
-          version: aiFoundryAiServices4_1ModelDeployment.version
-        }
-        raiPolicyName: aiFoundryAiServices4_1ModelDeployment.raiPolicyName
-        sku: {
-          name: aiFoundryAiServices4_1ModelDeployment.sku.name
-          capacity: aiFoundryAiServices4_1ModelDeployment.sku.capacity
-        }
-      }
-      {
         name: aiFoundryAiServicesReasoningModelDeployment.name
         model: {
           format: aiFoundryAiServicesReasoningModelDeployment.format
@@ -896,19 +883,6 @@ module aiFoundryAiServices 'br:mcr.microsoft.com/bicep/avm/res/cognitive-service
         sku: {
           name: aiFoundryAiServicesModelDeployment.sku.name
           capacity: aiFoundryAiServicesModelDeployment.sku.capacity
-        }
-      }
-      {
-        name: aiFoundryAiServices4_1ModelDeployment.name
-        model: {
-          format: aiFoundryAiServices4_1ModelDeployment.format
-          name: aiFoundryAiServices4_1ModelDeployment.name
-          version: aiFoundryAiServices4_1ModelDeployment.version
-        }
-        raiPolicyName: aiFoundryAiServices4_1ModelDeployment.raiPolicyName
-        sku: {
-          name: aiFoundryAiServices4_1ModelDeployment.sku.name
-          capacity: aiFoundryAiServices4_1ModelDeployment.sku.capacity
         }
       }
       {
@@ -1236,7 +1210,7 @@ module containerApp 'br/public:avm/res/app/container-app:0.18.1' = {
           }
           {
             name: 'AZURE_OPENAI_RAI_DEPLOYMENT_NAME'
-            value: aiFoundryAiServices4_1ModelDeployment.name
+            value: aiFoundryAiServicesModelDeployment.name
           }
           {
             name: 'AZURE_OPENAI_API_VERSION'
@@ -1829,7 +1803,7 @@ output COSMOSDB_CONTAINER string = cosmosDbDatabaseMemoryContainerName
 output AZURE_OPENAI_ENDPOINT string = 'https://${aiFoundryAiServicesResourceName}.openai.azure.com/'
 output AZURE_OPENAI_MODEL_NAME string = aiFoundryAiServicesModelDeployment.name
 output AZURE_OPENAI_DEPLOYMENT_NAME string = aiFoundryAiServicesModelDeployment.name
-output AZURE_OPENAI_RAI_DEPLOYMENT_NAME string = aiFoundryAiServices4_1ModelDeployment.name
+output AZURE_OPENAI_RAI_DEPLOYMENT_NAME string = aiFoundryAiServicesModelDeployment.name
 output AZURE_OPENAI_API_VERSION string = azureopenaiVersion
 // output APPLICATIONINSIGHTS_INSTRUMENTATION_KEY string = applicationInsights.outputs.instrumentationKey
 // output AZURE_AI_PROJECT_ENDPOINT string = aiFoundryAiServices.outputs.aiProjectInfo.apiEndpoint
@@ -1852,7 +1826,7 @@ output AZURE_COGNITIVE_SERVICES string = 'https://cognitiveservices.azure.com/.d
 output REASONING_MODEL_NAME string = aiFoundryAiServicesReasoningModelDeployment.name
 output MCP_SERVER_NAME string = 'MacaeMcpServer'
 output MCP_SERVER_DESCRIPTION string = 'MCP server with greeting, HR, and planning tools'
-output SUPPORTED_MODELS string = '["o3","o4-mini","gpt-4.1","gpt-4.1-mini"]'
+output SUPPORTED_MODELS string = '["o3","o4-mini","gpt-4.1-mini"]'
 output AZURE_AI_SEARCH_API_KEY string = '<Deployed-Search-ApiKey>'
 output BACKEND_URL string = 'https://${containerApp.outputs.fqdn}'
 output AZURE_AI_PROJECT_ENDPOINT string = aiFoundryAiProjectEndpoint
