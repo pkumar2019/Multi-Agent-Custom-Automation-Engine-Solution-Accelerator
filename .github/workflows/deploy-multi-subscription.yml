@@ -162,18 +162,6 @@ jobs:
             "gptModelCapacity": {
               "value": 50
             },
-            "gpt4_1ModelDeploymentType": {
-              "value": "Standard"
-            },
-            "gpt4_1ModelName": {
-              "value": "gpt-4.1"
-            },
-            "gpt4_1ModelVersion": {
-              "value": "2025-04-14"
-            },
-            "gpt4_1ModelCapacity": {
-              "value": 0
-            },
             "gptReasoningModelDeploymentType": {
               "value": "Standard"
             },
@@ -407,18 +395,6 @@ jobs:
             "gptModelCapacity": {
               "value": 10
             },
-            "gpt4_1ModelDeploymentType": {
-              "value": "Standard"
-            },
-            "gpt4_1ModelName": {
-              "value": "gpt-4.1"
-            },
-            "gpt4_1ModelVersion": {
-              "value": "2025-04-14"
-            },
-            "gpt4_1ModelCapacity": {
-              "value": 0
-            },
             "gptReasoningModelDeploymentType": {
               "value": "Standard"
             },
@@ -580,18 +556,6 @@ jobs:
             },
             "gptModelCapacity": {
               "value": 20
-            },
-            "gpt4_1ModelDeploymentType": {
-              "value": "Standard"
-            },
-            "gpt4_1ModelName": {
-              "value": "gpt-4.1"
-            },
-            "gpt4_1ModelVersion": {
-              "value": "2025-04-14"
-            },
-            "gpt4_1ModelCapacity": {
-              "value": 0
             },
             "gptReasoningModelDeploymentType": {
               "value": "Standard"
