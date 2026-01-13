@@ -1,3 +1,6 @@
+
+
+
 name: Deploy Multi-Agent Custom Automation Engine (Multi-Subscription)
 
 on:
@@ -154,37 +157,37 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4o-mini"
+              "value": "gpt-4.1"
             },
             "gptModelVersion": {
-              "value": "2024-07-18"
+              "value": "2025-04-14"
             },
             "gptModelCapacity": {
-              "value": 150
+              "value": 50
             },
             "gpt4_1ModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gpt4_1ModelName": {
-              "value": "gpt-4o"
+              "value": "gpt-4.1"
             },
             "gpt4_1ModelVersion": {
-              "value": "2024-08-06"
+              "value": "2025-04-14"
             },
             "gpt4_1ModelCapacity": {
-              "value": 100
+              "value": 50
             },
             "gptReasoningModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "o1-mini"
+              "value": "gpt-4.1"
             },
             "gptReasoningModelVersion": {
-              "value": "2024-09-12"
+              "value": "2025-04-14"
             },
             "gptReasoningModelCapacity": {
-              "value": 50
+              "value": 20
             },
             "enableTelemetry": {
               "value": true
@@ -399,37 +402,37 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4o-mini"
+              "value": "gpt-4.1"
             },
             "gptModelVersion": {
-              "value": "2024-07-18"
+              "value": "2025-04-14"
             },
             "gptModelCapacity": {
-              "value": 100
+              "value": 30
             },
             "gpt4_1ModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gpt4_1ModelName": {
-              "value": "gpt-4o"
+              "value": "gpt-4.1"
             },
             "gpt4_1ModelVersion": {
-              "value": "2024-08-06"
+              "value": "2025-04-14"
             },
             "gpt4_1ModelCapacity": {
-              "value": 50
+              "value": 20
             },
             "gptReasoningModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "o1-mini"
+              "value": "gpt-4.1"
             },
             "gptReasoningModelVersion": {
-              "value": "2024-09-12"
+              "value": "2025-04-14"
             },
             "gptReasoningModelCapacity": {
-              "value": 25
+              "value": 15
             },
             "enableTelemetry": {
               "value": true
@@ -573,37 +576,37 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4o"
+              "value": "gpt-4.1"
             },
             "gptModelVersion": {
-              "value": "2024-08-06"
+              "value": "2025-04-14"
             },
             "gptModelCapacity": {
-              "value": 200
+              "value": 60
             },
             "gpt4_1ModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gpt4_1ModelName": {
-              "value": "gpt-4o"
+              "value": "gpt-4.1"
             },
             "gpt4_1ModelVersion": {
-              "value": "2024-08-06"
+              "value": "2025-04-14"
             },
             "gpt4_1ModelCapacity": {
-              "value": 150
+              "value": 40
             },
             "gptReasoningModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "o1-mini"
+              "value": "gpt-4.1"
             },
             "gptReasoningModelVersion": {
-              "value": "2024-09-12"
+              "value": "2025-04-14"
             },
             "gptReasoningModelCapacity": {
-              "value": 100
+              "value": 25
             },
             "enableTelemetry": {
               "value": true
@@ -885,6 +888,5 @@ jobs:
         echo "4. Configure additional agent teams as needed"
         echo ""
         echo "✅ Multi-Agent Custom Automation Engine deployment completed successfully!"
-
 
 
