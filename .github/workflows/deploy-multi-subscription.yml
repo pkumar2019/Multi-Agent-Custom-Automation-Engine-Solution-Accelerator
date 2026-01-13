@@ -1,4 +1,5 @@
 name: Deploy Multi-Agent Custom Automation Engine (Multi-Subscription)
+
 on:
   workflow_dispatch:
     inputs:
@@ -171,7 +172,7 @@ jobs:
               "value": "2025-04-14"
             },
             "gpt4_1ModelCapacity": {
-              "value": 150
+              "value": 30
             },
             "gptReasoningModelDeploymentType": {
               "value": "GlobalStandard"
@@ -398,13 +399,13 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4.1"
+              "value": "gpt-4.1-mini"
             },
             "gptModelVersion": {
               "value": "2025-04-14"
             },
             "gptModelCapacity": {
-              "value": 30
+              "value": 10
             },
             "gpt4_1ModelDeploymentType": {
               "value": "GlobalStandard"
@@ -416,19 +417,19 @@ jobs:
               "value": "2025-04-14"
             },
             "gpt4_1ModelCapacity": {
-              "value": 20
+              "value": 10
             },
             "gptReasoningModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "gpt-4.1"
+              "value": "o4-mini"
             },
             "gptReasoningModelVersion": {
-              "value": "2025-04-14"
+              "value": "2025-04-16"
             },
             "gptReasoningModelCapacity": {
-              "value": 15
+              "value": 10
             },
             "enableTelemetry": {
               "value": true
@@ -549,7 +550,7 @@ jobs:
         FINANCE_LOCATION="${{ github.event.inputs.azure_location }}"
         FINANCE_RESOURCE_GROUP_NAME="rg-macae-f-${{ github.event.inputs.environment_suffix }}"
         FINANCE_DEPLOYMENT_NAME="macae-f-$(date +%Y%m%d%H%M%S)"
-
+        
         # Create Finance resource group
         az group create --name $FINANCE_RESOURCE_GROUP_NAME --location $FINANCE_LOCATION
         
@@ -572,13 +573,13 @@ jobs:
               "value": "GlobalStandard"
             },
             "gptModelName": {
-              "value": "gpt-4.1"
+              "value": "gpt-4.1-mini"
             },
             "gptModelVersion": {
               "value": "2025-04-14"
             },
             "gptModelCapacity": {
-              "value": 60
+              "value": 20
             },
             "gpt4_1ModelDeploymentType": {
               "value": "GlobalStandard"
@@ -590,19 +591,19 @@ jobs:
               "value": "2025-04-14"
             },
             "gpt4_1ModelCapacity": {
-              "value": 40
+              "value": 15
             },
             "gptReasoningModelDeploymentType": {
               "value": "GlobalStandard"
             },
             "gptReasoningModelName": {
-              "value": "gpt-4.1"
+              "value": "o4-mini"
             },
             "gptReasoningModelVersion": {
-              "value": "2025-04-14"
+              "value": "2025-04-16"
             },
             "gptReasoningModelCapacity": {
-              "value": 25
+              "value": 10
             },
             "enableTelemetry": {
               "value": true
@@ -884,5 +885,3 @@ jobs:
         echo "4. Configure additional agent teams as needed"
         echo ""
         echo "✅ Multi-Agent Custom Automation Engine deployment completed successfully!"
-
-
