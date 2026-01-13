@@ -1131,6 +1131,31 @@ module containerAppEnvironment 'br/public:avm/res/app/managed-environment:0.11.2
   }
 }
 
+// ========== Azure Container Registry ========== //
+var containerRegistryName = 'cr${solutionSuffix}'
+module containerRegistry 'br/public:avm/res/container-registry/registry:0.9.1' = {
+  name: 'avm.res.container-registry.registry.${containerRegistryName}'
+  params: {
+    name: containerRegistryName
+    acrAdminUserEnabled: false
+    acrSku: 'Basic'
+    azureADAuthenticationAsArmPolicyStatus: 'enabled'
+    exportPolicyStatus: 'enabled'
+    location: location
+    softDeletePolicyDays: 7
+    softDeletePolicyStatus: 'disabled'
+    tags: tags
+    networkRuleBypassOptions: 'AzureServices'
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull
+        principalType: 'ServicePrincipal'
+        principalId: userAssignedIdentity.outputs.principalId
+      }
+    ]
+  }
+}
+
 // ========== Backend Container App Service ========== //
 // WAF best practices for container apps: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/azure-container-apps
 // PSRule for Container App: https://azure.github.io/PSRule.Rules.Azure/en/rules/resource/#container-app
@@ -1178,7 +1203,7 @@ module containerApp 'br/public:avm/res/app/container-app:0.18.1' = {
     containers: [
       {
         name: 'backend'
-        image: '${backendContainerRegistryHostname}/${backendContainerImageName}:${backendContainerImageTag}'
+        image: '${containerRegistry.outputs.loginServer}/${backendContainerImageName}:${backendContainerImageTag}'
         resources: {
           cpu: '2.0'
           memory: '4.0Gi'
@@ -1393,7 +1418,7 @@ module containerAppMcp 'br/public:avm/res/app/container-app:0.18.1' = {
     containers: [
       {
         name: 'mcp'
-        image: '${MCPContainerRegistryHostname}/${MCPContainerImageName}:${MCPContainerImageTag}'
+        image: '${containerRegistry.outputs.loginServer}/${MCPContainerImageName}:${MCPContainerImageTag}'
         resources: {
           cpu: '2.0'
           memory: '4.0Gi'
@@ -1487,7 +1512,7 @@ module webSite 'modules/web-sites.bicep' = {
     kind: 'app,linux,container'
     serverFarmResourceId: webServerFarm.?outputs.resourceId
     siteConfig: {
-      linuxFxVersion: 'DOCKER|${frontendContainerRegistryHostname}/${frontendContainerImageName}:${frontendContainerImageTag}'
+      linuxFxVersion: 'DOCKER|${containerRegistry.outputs.loginServer}/${frontendContainerImageName}:${frontendContainerImageTag}'
       minTlsVersion: '1.2'
     }
     configs: [
@@ -1495,7 +1520,7 @@ module webSite 'modules/web-sites.bicep' = {
         name: 'appsettings'
         properties: {
           SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
-          DOCKER_REGISTRY_SERVER_URL: 'https://${frontendContainerRegistryHostname}'
+          DOCKER_REGISTRY_SERVER_URL: 'https://${containerRegistry.outputs.loginServer}'
           WEBSITES_PORT: '3000'
           WEBSITES_CONTAINER_START_TIME_LIMIT: '1800' // 30 minutes, adjust as needed
           BACKEND_API_URL: 'https://${containerApp.outputs.fqdn}'
@@ -1825,7 +1850,7 @@ output AZURE_AI_SEARCH_CONNECTION_NAME string = aiSearchConnectionName
 output AZURE_COGNITIVE_SERVICES string = 'https://cognitiveservices.azure.com/.default'
 
 // Container Registry and Container App outputs for GitHub Actions
-output containerRegistryName string = split(backendContainerRegistryHostname, '.')[0]
+output containerRegistryName string = containerRegistry.outputs.name
 output backendContainerAppName string = containerAppResourceName
 output REASONING_MODEL_NAME string = aiFoundryAiServicesReasoningModelDeployment.name
 output MCP_SERVER_NAME string = 'MacaeMcpServer'
