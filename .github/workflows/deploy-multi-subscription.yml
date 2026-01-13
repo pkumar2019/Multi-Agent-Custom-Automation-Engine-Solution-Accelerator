@@ -151,7 +151,7 @@ jobs:
               "value": "$LOCATION"
             },
             "gptModelDeploymentType": {
-              "value": "GlobalStandard"
+              "value": "Standard"
             },
             "gptModelName": {
               "value": "gpt-4.1-mini"
@@ -163,7 +163,7 @@ jobs:
               "value": 50
             },
             "gptReasoningModelDeploymentType": {
-              "value": "GlobalStandard"
+              "value": "Standard"
             },
             "gptReasoningModelName": {
               "value": "o4-mini"
@@ -384,7 +384,7 @@ jobs:
               "value": "${{ needs.deploy-primary.outputs.primary_ai_foundry_resource_id }}"
             },
             "gptModelDeploymentType": {
-              "value": "GlobalStandard"
+              "value": "Standard"
             },
             "gptModelName": {
               "value": "gpt-4.1-mini"
@@ -396,7 +396,7 @@ jobs:
               "value": 10
             },
             "gptReasoningModelDeploymentType": {
-              "value": "GlobalStandard"
+              "value": "Standard"
             },
             "gptReasoningModelName": {
               "value": "o4-mini"
@@ -546,7 +546,7 @@ jobs:
               "value": "$FINANCE_LOCATION"
             },
             "gptModelDeploymentType": {
-              "value": "GlobalStandard"
+              "value": "Standard"
             },
             "gptModelName": {
               "value": "gpt-4.1-mini"
@@ -558,7 +558,7 @@ jobs:
               "value": 20
             },
             "gptReasoningModelDeploymentType": {
-              "value": "GlobalStandard"
+              "value": "Standard"
             },
             "gptReasoningModelName": {
               "value": "o4-mini"
