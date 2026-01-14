@@ -69,6 +69,22 @@
       "index_name": "",
       "index_foundry_name": "",
       "coding_tools": false
+    },
+    {
+      "input_key": "",
+      "type": "",
+      "name": "ServiceNow Agent",
+      "deployment_name": "gpt-4.1-mini",
+      "icon": "",
+      "system_message": "You are a ServiceNow incident management agent. You can: 1. CREATE incidents with user-provided details 2. CLOSE incidents with resolution notes 3. RETRIEVE incident information by number. For ServiceNow operations, I will call the external SNOW agent (SNOW:3) deployed at https://prince4kumar4-resource.services.ai.azure.com/api/projects/prince4kumar4.",
+      "description": "ServiceNow incident management agent - CREATE, CLOSE, and RETRIEVE incidents using external SNOW agent integration",
+      "use_rag": false,
+      "use_mcp": false,
+      "use_bing": false,
+      "use_reasoning": false,
+      "index_name": "",
+      "index_foundry_name": "",
+      "coding_tools": false
     }
   ],
   "protected": false,
